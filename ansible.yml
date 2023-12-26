@@ -1,0 +1,44 @@
+---
+- hosts: all
+  user: ec2-user
+  become: yes
+  tasks:
+    - name: git installation
+      yum:
+        name: git
+        state: present
+    - name: maven installation
+      yum:
+        name: maven
+        state: present
+    - name: tomcat installation
+      get_url:
+        url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.83/bin/apache-tomcat-9.0.83.tar.gz
+        dest: /root/apache-tomcat-9.0.83.tar.gz
+    - name: extract file
+      unarchive:
+        src: /root/apache-tomcat-9.0.83.tar.gz
+        dest: /root
+        remote_src: yes
+    - name: create directory
+      file:
+        name: project
+        path: /root
+        state: directory
+    - name: git clone
+      git:
+        repo: https://github.com/pavan-byte/pet_shop.git
+        dest: /root/project
+        version: main
+    - name: maven build
+      shell:
+        cmd: mvn clean package
+        chdir: /root/project
+    - name: start tomcat application
+      shell: nohup /root/apache-tomcat-9.0.83/bin/startup.sh
+      tags: start
+    - name: war deployment
+      copy:
+        src: /root/project/target/petshop.war
+        dest: /root/apache-tomcat-9.0.83/webapps
+        remote_src: yes
